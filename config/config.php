@@ -8,6 +8,6 @@
 
 return[
     'serverParams'  =>  [
-        'backendUrl'    =>  'http://int20h_backend'
+        'backendUrl'    =>  'http://micro-backend'
     ]
 ];
