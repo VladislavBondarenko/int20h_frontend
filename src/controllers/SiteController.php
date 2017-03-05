@@ -37,12 +37,6 @@ class SiteController
         }
 
 
-//            $groups = $server->get('api/auth/friends', [
-//                'access_token' => $_SESSION['access_token']
-//            ]);
-//        $userProfile = $server->get('api/user/get-profile', [
-//            'access_token' => $_SESSION['access_token']
-//        ]);
         if (!isset($_SESSION['access_token'])) {
             $news = $server->get('api/news/all');
 
@@ -122,10 +116,40 @@ class SiteController
         $params = require(ROOT . '/config/config.php');
         $server = new Server($params['serverParams']);
 
+        if (!isset($_SESSION['access_token'])) {
+            if (!isset($_REQUEST['code'])) {
+                $authorize_url = $server->post('api/auth/auth-vk', [
+                    'scope' => 'groups'
+                ]);
+            } else {
+                $accessToken = $server->post('api/auth/auth-vk', [
+                    'code' => $_REQUEST['code']
+                ]);
+                $_SESSION['access_token'] = $accessToken->accessToken;
+
+                $userProfile = $server->get('api/user/get-profile', [
+                    'access_token' => $_SESSION['access_token']
+                ]);
+            }
+        } else {
+            $userProfile = $server->get('api/user/get-profile', [
+                'access_token' => $_SESSION['access_token']
+            ]);
+        }
+
+        $params = require(ROOT . '/config/config.php');
+        $server = new Server($params['serverParams']);
+
         $new = $server->get('api/news/view', [
             'id' => $_REQUEST['id'],
             'access_token' => $_SESSION['access_token']
         ]);
+
+        $tags = $server->get('api/category/tags', [
+            'category_id' => $new->category_id
+        ]);
+        $new->tags = $tags;
+
 
         require_once(ROOT . '/src/views/site/new.php');
 
