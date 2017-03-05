@@ -68,7 +68,7 @@
 
                 <li>
                 <?php if(empty($authorize_url->authUri)) {
-                    print_r($authorize_url);
+//                    print_r($authorize_url);
                     echo '<span class="list-group-item" style="margin-top:8px">'
                         . $userProfile->first_name . ' ' . $userProfile->last_name . '</span>'; ?>
                     <a href="/site/logout" class="btn btn-block btn-social btn-vk">

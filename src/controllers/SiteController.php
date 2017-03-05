@@ -15,17 +15,6 @@ class SiteController
         $params = require(ROOT . '/config/config.php');
         $server = new Server($params['serverParams']);
 
-        //unset($_SESSION['access_token']);
-
-        $groups = '';
-        $authorize_url = '';
-        $accessToken = '';
-        $userProfile = '';
-
-//        print_r($_REQUEST);
-//        print_r($_SESSION);
-//        die();
-
         if (!isset($_SESSION['access_token'])) {
             if (!isset($_REQUEST['code'])) {
                 $authorize_url = $server->post('api/auth/auth-vk', [
@@ -92,7 +81,7 @@ class SiteController
 
     public function actionLogout() {
         unset($_SESSION['access_token']);
-        require_once(ROOT . '/src/views/site/index.php');
+        header('Location: /');
 
         return true;
     }
