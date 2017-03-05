@@ -1,6 +1,10 @@
 <?php
+
 namespace app\controllers;
 use app\components\Server;
+use GuzzleHttp\Exception\RequestException;
+use phpDocumentor\Reflection\Location;
+
 class SiteController
 {
     /**
@@ -8,84 +12,135 @@ class SiteController
      */
     public function actionIndex()
     {
-        echo 'Hello';
-
-        //use app\components\Server;
-
         $params = require(ROOT . '/config/config.php');
-
-        //$_SESSION['access_token'] = 'ecff8f00b4fd0029c8963bca2fa780f2074c947d8db76bb4009e8e3b0d5cf5f90ae8e8f388dbfe3a5489c';
+        $server = new Server($params['serverParams']);
 
         //unset($_SESSION['access_token']);
 
-        $server = new Server($params['serverParams']);
+        $groups = '';
+        $authorize_url = '';
+        $accessToken = '';
+        $userProfile = '';
+
+//        print_r($_REQUEST);
+//        print_r($_SESSION);
+//        die();
 
         if (!isset($_SESSION['access_token'])) {
             if (!isset($_REQUEST['code'])) {
                 $authorize_url = $server->post('api/auth/auth-vk', [
                     'scope' => 'groups'
                 ]);
-                //    print_r($authorize_url); die;
-                echo '<a href="' . $authorize_url->authUri . '">Sign in with VK</a>';
             } else {
                 $accessToken = $server->post('api/auth/auth-vk', [
                     'code' => $_REQUEST['code']
                 ]);
                 $_SESSION['access_token'] = $accessToken->accessToken;
 
-                print_r($accessToken);
+                $userProfile = $server->get('api/user/get-profile', [
+                    'access_token' => $_SESSION['access_token']
+                ]);
             }
-        }
-        else{
-            $user = $server->get('api/auth/friends', [
+        } else {
+            $userProfile = $server->get('api/user/get-profile', [
                 'access_token' => $_SESSION['access_token']
             ]);
-            print_r($user);
-}
+        }
 
 
-        // $categories = Category::getCategoriesList();
-        // $latestProducts = Product::getLatestProducts(6);
-        // $sliderProducts = Product::getRecommendedProducts();
-        // require_once(ROOT . '/views/site/index.php');
+//            $groups = $server->get('api/auth/friends', [
+//                'access_token' => $_SESSION['access_token']
+//            ]);
+//        $userProfile = $server->get('api/user/get-profile', [
+//            'access_token' => $_SESSION['access_token']
+//        ]);
+        if (!isset($_SESSION['access_token'])) {
+            $news = $server->get('api/news/all');
+
+            $categories = $server->get('api/category/all');
+
+            foreach ($news as $index => $new) {
+                $tags = $server->get('api/category/tags', [
+                    'category_id' => $new->category_id
+                ]);
+                $news[$index]->tags = $tags;
+            }
+        } else {
+
+            $news = $server->get('api/news/all', [
+                'access_token' => $_SESSION['access_token']
+            ]);
+
+            $categories = $server->get('api/category/all', [
+                'access_token' => $_SESSION['access_token']
+            ]);
+
+            foreach ($news as $index => $new) {
+                $tags = $server->get('api/category/tags', [
+                    'category_id' => $new->category_id,
+                    'access_token' => $_SESSION['access_token']
+                ]);
+                $news[$index]->tags = $tags;
+            }
+        }
+
+
+        require_once(ROOT . '/src/views/site/index.php');
+
          return true;
     }
 
-    /**
-     * @return bool
-     */
-    public function actionContact()
-    {
-        $userEmail = false;
-        $userText = false;
-        $result = false;
+    public function actionLogout() {
+        unset($_SESSION['access_token']);
+        require_once(ROOT . '/src/views/site/index.php');
 
-        if (isset($_POST['submit'])) {
-            $userEmail = $_POST['userEmail'];
-            $userText = $_POST['userText'];
-            $errors = false;
-            if (!User::checkEmail($userEmail)) {
-                $errors[] = 'Неправильный email';
-            }
-            if ($errors == false) {
-                $adminEmail = 'php.start@mail.ru';
-                $message = "Текст: {$userText}. От {$userEmail}";
-                $subject = 'Тема письма';
-                $result = mail($adminEmail, $subject, $message);
-                $result = true;
-            }
+        return true;
+    }
+
+    public function actionCategory() {
+
+        $params = require(ROOT . '/config/config.php');
+        $server = new Server($params['serverParams']);
+
+        $userProfile = $server->get('api/user/get-profile', [
+            'access_token' => $_SESSION['access_token']
+        ]);
+
+        $categories = $server->get('api/category/all', [
+            'access_token' => $_SESSION['access_token']
+        ]);
+
+        $news = $server->get('api/news/get-by-category', [
+            'category' => $_REQUEST['category'],
+            'access_token' => $_SESSION['access_token']
+        ]);
+
+        foreach ($news as $index => $new) {
+            $tags = $server->get('api/category/tags', [
+                'category_id' => $new->category_id,
+                'access_token' => $_SESSION['access_token']
+            ]);
+            $news[$index]->tags = $tags;
         }
 
-        require_once(ROOT . '/views/site/contact.php');
+        require_once(ROOT . '/src/views/site/category.php');
+
         return true;
     }
 
-    /**
-     * @return bool
-     */
-    public function actionAbout()
+    public function actionNew()
     {
-        require_once(ROOT . '/views/site/about.php');
+        $params = require(ROOT . '/config/config.php');
+        $server = new Server($params['serverParams']);
+
+        $new = $server->get('api/news/view', [
+            'id' => $_REQUEST['id'],
+            'access_token' => $_SESSION['access_token']
+        ]);
+
+        require_once(ROOT . '/src/views/site/new.php');
+
         return true;
     }
+
 }
