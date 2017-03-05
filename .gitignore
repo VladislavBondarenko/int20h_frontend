@@ -35,3 +35,5 @@ phpunit.bat
 
 # vagrant runtime
 /.vagrant
+
+.ssh
